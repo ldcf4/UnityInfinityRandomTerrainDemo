@@ -8,6 +8,8 @@ public class ChunkManager : MonoBehaviour
 
     [Header("heightmap")]
     public HeightMapConfig config;                  //高度图生成配置
+    [Header("filter")]
+    public FIRFilterConfig filter_config;           //过滤器，
     [Header("chunk")]
     public Vector2 ChunkSize=new Vector2(128,128);      //单片Chunk大小
     public Vector2 AddSize=new Vector2(64,64);          //添加周围Chunk的范围

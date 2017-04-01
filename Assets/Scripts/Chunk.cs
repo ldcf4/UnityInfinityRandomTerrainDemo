@@ -164,34 +164,39 @@ public class Chunk
                 m_height_map[j, i] = -100;
             }
         }
-        if (Left!=null)
+        CopySideMap();
+    }
+
+    private void CopySideMap()
+    {
+        if (Left != null)
         {
             var left_map = Left.m_height_map;
-            for (int i = 0; i < m_heightmap_len+1; i++)
+            for (int i = 0; i < m_heightmap_len + 1; i++)
             {
                 m_height_map[0, i] = left_map[m_heightmap_len, i];
             }
         }
-        if (Right!=null)
+        if (Right != null)
         {
             var right_map = Right.m_height_map;
-            for (int i = 0; i < m_heightmap_len+1; i++)
+            for (int i = 0; i < m_heightmap_len + 1; i++)
             {
                 m_height_map[m_heightmap_len, i] = right_map[0, i];
             }
         }
-        if (Up!=null)
+        if (Up != null)
         {
             var up_map = Up.m_height_map;
-            for (int i = 0; i < m_heightmap_len+1; i++)
+            for (int i = 0; i < m_heightmap_len + 1; i++)
             {
                 m_height_map[i, m_heightmap_len] = up_map[i, 0];
             }
         }
-        if (Down!=null)
+        if (Down != null)
         {
             var down_map = Down.m_height_map;
-            for (int i = 0; i < m_heightmap_len+1; i++)
+            for (int i = 0; i < m_heightmap_len + 1; i++)
             {
                 m_height_map[i, 0] = down_map[i, m_heightmap_len];
             }
@@ -227,6 +232,9 @@ public class Chunk
     {
         GenralBaseHeightMap();
         HeightMapFactory.GeneralHeightMapByFractal(m_cfg.Iterations, m_cfg.H, m_cfg.min, m_cfg.max, m_cfg.seed, m_cfg.type, m_height_map);
+        var fcfg = ChunkManager.Instence.filter_config;
+        HeightMapFilter.FilterFIR(m_height_map, m_heightmap_len + 1, fcfg.times, fcfg.k);
+        CopySideMap();
         maskcolor = SurfaceMaskCreator.GeneralMaskData(m_heightmap_len, m_cfg.max, m_height_map, m_cfg.min);
         InitMesh();
         InitPiece();

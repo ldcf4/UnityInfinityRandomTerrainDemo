@@ -29,7 +29,7 @@ public struct HeightMapConfig
 class HeightMapFactory
 {
     /// <summary>
-    /// 使用分形算法计算出高度图
+    /// 使用分形算法(菱形-四边形)计算出高度图
     /// </summary>
     /// <param name="Iterations">迭代次数</param>
     /// <param name="H">粗糙度常数</param>

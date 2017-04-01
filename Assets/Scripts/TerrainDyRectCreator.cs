@@ -5,8 +5,14 @@ public class TerrainDyRectCreator : MonoBehaviour
 {
     private const int LOD_LEVEL_MAX= 4;
 
-    [Header("Terrain")]
+    [Header("Heightmap")]
     public HeightMapConfig config;
+    [Header("LineHeightmap")]
+    public LineMapConfig config_line;
+    [Header("ParticleDeposition")]
+    public ParticleDepositionConfig config_particle;
+    [Header("Filter")]
+    public FIRFilterConfig fir_config;
 
     [Header("Mesh")]
     public int PieceMechSegment = 16;    //每篇网格多少段
@@ -34,18 +40,37 @@ public class TerrainDyRectCreator : MonoBehaviour
 
     private Vector2 FixedWorldSize = new Vector2(128, 128);
 
+    public Transform hero;
+
     private void Awake()
     {
         m_cache_v3 = new ArrayCache<Vector3>();
         m_cache_v2 = new ArrayCache<Vector2>();
         m_cache_int = new ArrayCache<int>();
 
+        float max = 0;
+
         m_watch = new System.Diagnostics.Stopwatch();
         m_heightmap_len = 1 << config.Iterations;
         m_heightmap = HeightMapFactory.CreateHeightMapByFractal(config.Iterations, config.H, config.min, config.max, config.seed, config.type);
+        max = config.max;
+        HeightMapFilter.FilterFIR(m_heightmap, m_heightmap_len + 1, fir_config.times, fir_config.k);
+
+        //m_heightmap_len = config_line.size -1;
+        //m_heightmap = HeightMapFuzzyLandscaping.CreateHeightMap(config_line.size, config_line.seed, config_line.max,config_line.smooth_step);
+
+        //m_heightmap_len = config_line.size - 1;
+        //m_heightmap = HeightMapFuzzyLandscaping.CreateMapByLine(config_line.size, config_line.seed, config_line.max, config_line.line_num,config_line.smooth_step);
+
+        //m_heightmap_len = config_particle.size - 1;
+        //m_heightmap = HeightMapParticleDeposition.CreateMap(config_particle.size, config_particle.seed, config_particle.deposition_time, config_particle.deposition_deap, config_particle.deposition_size,config_particle.each_h,out max);
+        //HeightMapVolcano.ToVolcano(m_heightmap, m_heightmap_len + 1, max * 0.5f);
+        //HeightMapFilter.FilterFIR(m_heightmap, m_heightmap_len + 1, fir_config.times, fir_config.k);
+
+
         InitMeshMap();
         var mask = SurfaceMaskCreator.CreateMask(m_heightmap_len);
-        var maskcolor = SurfaceMaskCreator.GeneralMaskData(m_heightmap_len, config.max, m_heightmap, config.min);
+        var maskcolor = SurfaceMaskCreator.GeneralMaskData(m_heightmap_len, max, m_heightmap, 0);
         mask.SetPixels(maskcolor);
         mask.Apply();
         PieceMat.SetTexture("_Mask", mask);
@@ -297,37 +322,17 @@ public class TerrainDyRectCreator : MonoBehaviour
     private void UpdateLodLevel()
     {
         var cam = Camera.main;
+        float CL = 0.6f;
+        Vector3 pos = hero.position;
         for (int i = 0; i < PieceNum; i++)
         {
             for (int j = 0; j < PieceNum; j++)
             {
                 LodPiece ps = m_piecees[j, i];
-                Vector3 p00 = new Vector3(ps.box.x, 0, ps.box.y);
-                var v00 = cam.WorldToViewportPoint(p00);
-                Vector3 p10 = new Vector3(ps.box.x + ps.box.width, 0, ps.box.y);
-                var v10 = cam.WorldToViewportPoint(p10);
-                Vector3 p01 = new Vector3(ps.box.x, 0, ps.box.y + ps.box.height);
-                var v01 = cam.WorldToViewportPoint(p01);
-                Vector3 p11 = new Vector3(ps.box.x + ps.box.width, 0, ps.box.y + ps.box.height);
-                var v11 = cam.WorldToViewportPoint(p11);
-
-                if (v00.x>=0&& v00.x<=1&& v00.y>=0&& v00.y<=1)
-                {
-                    ps.LodLevel = 0;
-                }
-                else if (v10.x >= 0 && v10.x <= 1 && v10.y >= 0 && v10.y <= 1)
-                {
-                    ps.LodLevel = 0;
-                }
-                else if (v01.x >= 0 && v01.x <= 1 && v01.y >= 0 && v01.y <= 1)
-                {
-                    ps.LodLevel = 0;
-                }
-                else if (v11.x >= 0 && v11.x <= 1 && v11.y >= 0 && v11.y <= 1)
-                {
-                    ps.LodLevel = 0;
-                }
-                else
+                Vector2 center = ps.box.position + ps.box.size / 2;
+                float distence = Vector2.Distance(center, new Vector2(pos.x, pos.z));
+                ps.LodLevel = Mathf.FloorToInt((distence / ps.box.width) * CL);
+                if (ps.LodLevel > LOD_LEVEL_MAX)
                 {
                     ps.LodLevel = LOD_LEVEL_MAX;
                 }
